@@ -14,6 +14,62 @@ Steps:
 
 2.  Use the glm function for Baltimore
 
+``` r
+baltimore_df = 
+  homicide_cleandf %>% 
+  filter(
+    city_state == "Baltimore, MD"
+  )
+```
+
+For the city of Baltimore, MD, use the glm function to fit a logistic
+regression with resolved vs unresolved as the outcome and victim age,
+sex and race as predictors. Save the output of glm as an R object;apply
+the broom::tidy to this object
+
+``` r
+fit_logistic = 
+  baltimore_df %>% 
+  glm(solved ~ victim_age + victim_sex + victim_race, data = ., family = binomial()) %>% 
+  broom::tidy()
+```
+
+- recall the estimates above are log odds ratios \*
+
+Obtain the estimate and confidence interval of the adjusted odds ratio
+for solving homicides comparing male victims to female victims keeping
+all other variables fixed.
+
+``` r
+fit_logistic %>% 
+  mutate(OR = exp(estimate)) %>% 
+  select(term, log_OR = estimate, OR, p.value) %>% 
+  filter(
+    term == "victim_sexMale"
+  ) %>% 
+  knitr::kable(digits = 3)
+```
+
+| term           | log_OR |    OR | p.value |
+|:---------------|-------:|------:|--------:|
+| victim_sexMale | -0.854 | 0.426 |       0 |
+
+``` r
+fit_logistic
+```
+
+    ## # A tibble: 4 × 5
+    ##   term             estimate std.error statistic  p.value
+    ##   <chr>               <dbl>     <dbl>     <dbl>    <dbl>
+    ## 1 (Intercept)       0.310     0.171        1.81 7.04e- 2
+    ## 2 victim_age       -0.00673   0.00332     -2.02 4.30e- 2
+    ## 3 victim_sexMale   -0.854     0.138       -6.18 6.26e-10
+    ## 4 victim_raceWhite  0.842     0.175        4.82 1.45e- 6
+
+Men who are the victims of homicides are 0.426 as likely to have a
+solved homicide compared to women, adjusting for victim race (white
+vs. black) and victim age.
+
 # Problem 3
 
 prediction vs residuals (diff between actual and predicted); there
@@ -79,7 +135,7 @@ birth_cleandf %>%
   ggplot(aes(x = pred, y = resid)) + geom_point(alpha = 0.5) + geom_hline(yintercept = 0)
 ```
 
-<img src="hw6_files/figure-gfm/unnamed-chunk-8-1.png" width="90%" />
+<img src="hw6_files/figure-gfm/unnamed-chunk-10-1.png" width="90%" />
 
 *Identify RMSE*
 
@@ -127,7 +183,7 @@ model_df %>%
   geom_boxplot()
 ```
 
-<img src="hw6_files/figure-gfm/unnamed-chunk-10-1.png" width="90%" />
+<img src="hw6_files/figure-gfm/unnamed-chunk-12-1.png" width="90%" />
 
 As a result, I can see visually that model \#2 is the better model on
 average as it has a lower RMSE. My model has a relatively much higher

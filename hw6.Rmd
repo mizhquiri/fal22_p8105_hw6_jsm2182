@@ -83,14 +83,28 @@ For the city of Baltimore, MD, use the glm function to fit a logistic regression
 ```{r}
 fit_logistic = 
   baltimore_df %>% 
-  glm(solved ~ victim_age + victim_sex + victim_race, data = ., family = binomial())%>% 
+  glm(solved ~ victim_age + victim_sex + victim_race, data = ., family = binomial()) %>% 
   broom::tidy()
 ```
+* recall the estimates above are log odds ratios * 
+
 Obtain the estimate and confidence interval of the adjusted odds ratio for solving homicides comparing male victims to female victims keeping all other variables fixed.
 
 ```{r}
-fit_lo
+fit_logistic %>% 
+  mutate(OR = exp(estimate)) %>% 
+  select(term, log_OR = estimate, OR, p.value) %>% 
+  filter(
+    term == "victim_sexMale"
+  ) %>% 
+  knitr::kable(digits = 3)
+
+
+fit_logistic
 ```
+
+
+Men who are the victims of homicides are 0.426 as likely to have a solved homicide compared to women, adjusting for victim race (white vs. black) and victim age.
 
 # Problem 3 
 

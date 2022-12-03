@@ -44,27 +44,33 @@ geom_point (hline)
 
 2.  I propose the following model:
 
-y = b(babysex) + b(smoken) + b(wtgain) + error
+y = b(babysex) + b(smoken) + b(wtgain) + b(smoken) + b(mrace) +
+b(malform) + b(wtgain) + error
 
 ``` r
-fit_mymodel = lm(bwt ~ babysex + smoken + momage, data = birth_cleandf)
+fit_mymodel = lm(bwt ~ babysex + smoken + mrace + wtgain, data = birth_cleandf)
+
+fit_no1 = lm(bwt ~ blength + gaweeks, data = birth_cleandf)
+
+fit_no2 = lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex, data = birth_cleandf)
 ```
 
 ``` r
-fit_no1 = lm(bwt ~ blength + gaweeks, data = birth_cleandf) %>% 
-  broom::tidy()
+fit_no1 = lm(bwt ~ blength + gaweeks, data = birth_cleandf)
 
-fit_no2 = lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex, data = birth_cleandf) %>% 
-  broom::tidy()
+fit_no2 = lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex, data = birth_cleandf)
 ```
 
-Plot residuals vs predictors
+*Modeling process*
 
-``` r
-birth_reduced = 
-  birth_cleandf %>% 
-  select()
-```
+- I selected factors that I recognized from the literature may correlate
+  to birth weight, such as maternal smoking status, maternal race, and
+  the mother’s weight gain during prenancy. I also added baby sex.
+
+*Plot residuals vs predictors in my model*
+
+- the plotted residuals and predictors indicate no colinearity between
+  my models. As such, I am content to proceed with my model.
 
 ``` r
 birth_cleandf %>%
@@ -73,6 +79,56 @@ birth_cleandf %>%
   ggplot(aes(x = pred, y = resid)) + geom_point(alpha = 0.5) + geom_hline(yintercept = 0)
 ```
 
-<img src="hw6_files/figure-gfm/unnamed-chunk-9-1.png" width="90%" />
+<img src="hw6_files/figure-gfm/unnamed-chunk-8-1.png" width="90%" />
 
 *Identify RMSE*
+
+fit_mymodel = lm(bwt \~ babysex + smoken + mrace + wtgain, data =
+birth_cleandf)
+
+fit_no1 = lm(bwt \~ blength + gaweeks, data = birth_cleandf)
+
+fit_no2 = lm(bwt \~ bhead + blength + babysex + bhead*blength +
+bhead*babysex + blength\*babysex, data = birth_cleandf)
+
+``` r
+model_df = 
+  crossv_mc(birth_cleandf, 5) %>% 
+  mutate(
+    train = map(train, as_tibble),
+    test = map(test, as_tibble),
+  )
+
+
+model_df = 
+  model_df %>% 
+  mutate(
+    fit_mymodel = map(.x = train, ~lm(bwt ~ babysex + smoken + mrace + wtgain, data = .x)),
+    fit_no1 =    map(.x = train, ~lm(bwt ~ blength + gaweeks, data = .x)),
+    fit_no2 = map(.x = train, ~lm(bwt ~ bhead + blength + babysex + bhead*blength + bhead*babysex + blength*babysex, data = .x))
+  ) %>% 
+  mutate(
+    rmse_mymodel = map2_dbl(.x = fit_mymodel, .y = test, ~rmse(model = .x, data = .y)),
+    rmse_no1 =    map2_dbl(.x = fit_no1, .y = test, ~rmse(model = .x, data = .y)),
+    rmse_no2 = map2_dbl(.x = fit_no2, .y = test, ~rmse(model = .x, data = .y))
+  )
+```
+
+``` r
+model_df %>% 
+  select(starts_with("rmse")) %>% 
+  pivot_longer(
+    everything(),
+    names_to = "model",
+    values_to = "rmse",
+    names_prefix = "rmse_"
+  ) %>% 
+  ggplot(aes(x = model, y = rmse)) +
+  geom_boxplot()
+```
+
+<img src="hw6_files/figure-gfm/unnamed-chunk-10-1.png" width="90%" />
+
+As a result, I can see visually that model \#2 is the better model on
+average as it has a lower RMSE. My model has a relatively much higher
+RMSE.
